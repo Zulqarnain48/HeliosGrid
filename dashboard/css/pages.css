@@ -1,0 +1,322 @@
+/* ==========================================================================
+   PAGE-SPECIFIC — Grid schematic, order book, terminal, battery, IoT
+   ========================================================================== */
+
+/* ── MICROGRID SCHEMATIC ── */
+.schematic-wrap {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 24px;
+  box-shadow: var(--shadow-sm);
+  position: relative;
+  overflow: hidden;
+}
+.schematic-svg {
+  width: 100%;
+  max-width: 900px;
+  margin: 0 auto;
+  display: block;
+}
+.schematic-svg text {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+}
+.schematic-legend {
+  display: flex;
+  gap: 24px;
+  justify-content: center;
+  margin-top: 16px;
+  flex-wrap: wrap;
+}
+.legend-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  color: var(--text-muted);
+}
+.legend-line {
+  width: 24px;
+  height: 3px;
+  border-radius: 2px;
+}
+
+/* ── ORDER BOOK ── */
+.orderbook-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  margin-bottom: 24px;
+}
+@media (max-width: 768px) {
+  .orderbook-grid { grid-template-columns: 1fr; }
+}
+
+.orderbook-side {
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+}
+.orderbook-side .side-header {
+  padding: 12px 16px;
+  font-size: 13px;
+  font-weight: 650;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  border-bottom: 1px solid var(--border);
+}
+.orderbook-side.asks .side-header {
+  background: var(--green-light);
+  color: var(--green);
+}
+.orderbook-side.bids .side-header {
+  background: var(--primary-light);
+  color: var(--primary);
+}
+
+.order-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr 60px;
+  gap: 8px;
+  padding: 8px 16px;
+  font-size: 12.5px;
+  color: var(--text-secondary);
+  border-bottom: 1px solid var(--border);
+  align-items: center;
+  transition: background var(--duration-fast) var(--ease-out);
+}
+.order-row:hover { background: var(--surface-muted); }
+.order-row:last-child { border-bottom: none; }
+.order-row .price {
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+.order-row.ask-row .price { color: var(--green); }
+.order-row.bid-row .price { color: var(--primary-accent); }
+
+.depth-bar {
+  height: 3px;
+  border-radius: 2px;
+  background: var(--border);
+  position: relative;
+  overflow: hidden;
+}
+.depth-bar-fill {
+  height: 100%;
+  border-radius: 2px;
+  transition: width 0.5s var(--ease-out);
+}
+.depth-bar-fill.green { background: var(--green); opacity: .5; }
+.depth-bar-fill.blue { background: var(--primary-accent); opacity: .5; }
+
+/* ── AUCTION PANEL ── */
+.auction-panel {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+@media (max-width: 768px) {
+  .auction-panel { grid-template-columns: 1fr; }
+}
+
+/* ── TRADE HISTORY ── */
+.trade-row {
+  display: grid;
+  grid-template-columns: 80px 1fr 80px 80px 100px;
+  gap: 8px;
+  padding: 8px 16px;
+  font-size: 12.5px;
+  color: var(--text-secondary);
+  border-bottom: 1px solid var(--border);
+  align-items: center;
+}
+.trade-row .type-badge {
+  font-weight: 700;
+  font-size: 11px;
+}
+.trade-row .type-badge.buy { color: var(--primary-accent); }
+.trade-row .type-badge.sell { color: var(--green); }
+
+/* ── TERMINAL ── */
+.terminal {
+  background: #0f172a;
+  border-radius: var(--radius-lg);
+  border: 1px solid #1e293b;
+  overflow: hidden;
+  font-family: 'SF Mono', 'Fira Code', 'Cascadia Code', Consolas, monospace;
+}
+.terminal-header {
+  background: #1e293b;
+  padding: 8px 14px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  border-bottom: 1px solid #334155;
+}
+.terminal-dot {
+  width: 10px; height: 10px; border-radius: 50%;
+}
+.terminal-dot.red { background: #ef4444; }
+.terminal-dot.yellow { background: #f59e0b; }
+.terminal-dot.green { background: #22c55e; }
+.terminal-title {
+  font-size: 11px;
+  color: #94a3b8;
+  margin-left: 8px;
+}
+.terminal-body {
+  padding: 16px;
+  max-height: 280px;
+  overflow-y: auto;
+  font-size: 12px;
+  line-height: 1.7;
+  color: #e2e8f0;
+}
+.terminal-body::-webkit-scrollbar-thumb { background: #334155; }
+.terminal-line { white-space: pre-wrap; word-break: break-all; }
+.terminal-line .timestamp { color: #475569; }
+.terminal-line .event-type { color: #60a5fa; font-weight: 600; }
+.terminal-line .address { color: #a78bfa; }
+.terminal-line .amount { color: #34d399; }
+.terminal-line .warning { color: #fbbf24; }
+.terminal-line .error { color: #f87171; }
+
+/* ── BATTERY VISUALIZATION ── */
+.battery-visual {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  padding: 24px;
+}
+.battery-shell {
+  width: 80px;
+  height: 140px;
+  border: 3px solid var(--border-hover);
+  border-radius: 8px;
+  position: relative;
+  overflow: hidden;
+  background: var(--surface-muted);
+}
+.battery-tip {
+  width: 28px;
+  height: 8px;
+  background: var(--border-hover);
+  border-radius: 3px 3px 0 0;
+  position: absolute;
+  top: -10px;
+  left: 50%;
+  transform: translateX(-50%);
+}
+.battery-level {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: linear-gradient(to top, var(--green), #22c55e);
+  transition: height 1s var(--ease-out);
+  border-radius: 0 0 5px 5px;
+}
+.battery-level.low {
+  background: linear-gradient(to top, var(--red), #ef4444);
+}
+.battery-level.mid {
+  background: linear-gradient(to top, var(--amber), #f59e0b);
+}
+.battery-percent {
+  font-size: 24px;
+  font-weight: 750;
+  color: var(--text);
+  letter-spacing: -0.5px;
+}
+.battery-label {
+  font-size: 12px;
+  color: var(--text-muted);
+  font-weight: 500;
+}
+
+/* ── IoT METER GRID ── */
+.meter-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 16px;
+}
+
+.meter-card {
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  transition: border-color var(--duration) var(--ease-out),
+              box-shadow var(--duration) var(--ease-out);
+}
+.meter-card:hover {
+  border-color: var(--border-hover);
+  box-shadow: var(--shadow);
+}
+.meter-card-header {
+  padding: 14px 16px;
+  background: var(--surface-muted);
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.meter-card-body {
+  padding: 16px;
+  background: var(--surface);
+}
+.meter-reading {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  padding: 6px 0;
+  font-size: 13px;
+}
+.meter-reading .label { color: var(--text-muted); }
+.meter-reading .value { font-weight: 600; color: var(--text); font-variant-numeric: tabular-nums; }
+
+/* ── TWO-COLUMN LAYOUT ── */
+.content-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+}
+.content-grid--wide {
+  grid-template-columns: 2fr 1fr;
+}
+@media (max-width: 900px) {
+  .content-grid,
+  .content-grid--wide { grid-template-columns: 1fr; }
+}
+
+/* ── FULL-WIDTH CHART ── */
+.chart-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 20px;
+  box-shadow: var(--shadow-sm);
+}
+.chart-card h4 {
+  font-size: 13px;
+  font-weight: 650;
+  color: var(--text);
+  margin-bottom: 16px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.chart-card canvas {
+  max-height: 280px;
+}
+
+/* ── SPARKLINE (inline mini chart) ── */
+.sparkline-wrap {
+  height: 36px;
+  margin-top: 8px;
+}
+.sparkline-wrap canvas {
+  width: 100% !important;
+  height: 36px !important;
+}

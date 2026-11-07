@@ -1,0 +1,863 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>HeliosGrid — Microgrid Energy Trading Platform</title>
+  <meta name="description" content="Blockchain-based Peer-to-Peer Solar Energy Trading Dashboard">
+
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
+  <!-- Chart.js -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+  <script src="/vendor/ethers.umd.min.js"></script>
+
+  <!-- FontAwesome -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+
+  <!-- Stylesheets -->
+  <link rel="stylesheet" href="css/variables.css">
+  <link rel="stylesheet" href="css/base.css">
+  <link rel="stylesheet" href="css/layout.css">
+  <link rel="stylesheet" href="css/components.css">
+  <link rel="stylesheet" href="css/animations.css">
+  <link rel="stylesheet" href="css/pages.css">
+
+  <style>
+    body { font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; }
+  </style>
+</head>
+<body>
+
+<div class="app-shell">
+  <!-- ═══════════════ HEADER ═══════════════ -->
+  <header class="app-header">
+    <div class="brand-wrap">
+      <div class="brand-logo"><i class="fas fa-solar-panel"></i></div>
+      <div class="brand-meta">
+        <h1>HeliosGrid</h1>
+        <p>Peer-to-Peer Solar Microgrid Trading Platform</p>
+      </div>
+    </div>
+    <div class="header-right">
+      <span class="badge badge--warn" id="networkStatus"><i class="fas fa-plug"></i> Checking local chain…</span>
+      <span class="header-updated" id="lastUpdated">Sample view</span>
+      <button class="btn btn--primary btn--sm" id="walletButton" type="button">Connect Wallet</button>
+      <button class="btn btn--secondary btn--sm theme-toggle" id="themeToggle" type="button" aria-label="Switch to dark theme" title="Switch theme">
+        <i class="fas fa-moon" aria-hidden="true"></i>
+      </button>
+      <div class="avatar" id="accountAvatar" data-tooltip="Wallet not connected" aria-label="Wallet not connected">HG</div>
+    </div>
+  </header>
+
+  <!-- ═══════════════ SIDEBAR ═══════════════ -->
+  <nav class="sidebar">
+    <div class="sidebar-section">
+      <div class="sidebar-label">Overview</div>
+      <div class="nav-item active" data-page="dashboard" onclick="switchPage('dashboard')">
+        <i class="fas fa-chart-line"></i> Dashboard
+      </div>
+      <div class="nav-item" data-page="schematic" onclick="switchPage('schematic')">
+        <i class="fas fa-project-diagram"></i> Grid Schematic
+      </div>
+    </div>
+
+    <div class="sidebar-section">
+      <div class="sidebar-label">Trading</div>
+      <div class="nav-item" data-page="orderbook" onclick="switchPage('orderbook')">
+        <i class="fas fa-exchange-alt"></i> Order Book
+        <span class="nav-count" id="orderCount">12</span>
+      </div>
+      <div class="nav-item" data-page="prosumer" onclick="switchPage('prosumer')">
+        <i class="fas fa-bolt"></i> Prosumer Terminal
+      </div>
+      <div class="nav-item" data-page="consumer" onclick="switchPage('consumer')">
+        <i class="fas fa-plug"></i> Consumer Portal
+      </div>
+    </div>
+
+    <div class="sidebar-section">
+      <div class="sidebar-label">Infrastructure</div>
+      <div class="nav-item" data-page="battery" onclick="switchPage('battery')">
+        <i class="fas fa-battery-three-quarters"></i> Community Battery
+      </div>
+      <div class="nav-item" data-page="iot" onclick="switchPage('iot')">
+        <i class="fas fa-microchip"></i> IoT Meters
+        <span class="nav-count" id="meterCount">6</span>
+      </div>
+      <div class="nav-item" data-page="scada" onclick="switchPage('scada')">
+        <i class="fas fa-shield-alt"></i> DISCO SCADA
+      </div>
+    </div>
+
+    <div class="sidebar-section" style="margin-top:auto;">
+      <div class="sidebar-label">System</div>
+      <div class="nav-item" data-page="contracts" onclick="switchPage('contracts')">
+        <i class="fas fa-file-contract"></i> Smart Contracts
+      </div>
+      <div class="nav-item" data-page="events" onclick="switchPage('events')">
+        <i class="fas fa-terminal"></i> Event Log
+      </div>
+    </div>
+  </nav>
+
+  <!-- ═══════════════ MAIN CONTENT ═══════════════ -->
+  <main class="main-content">
+
+    <!-- ────── PAGE: DASHBOARD ────── -->
+    <section class="page-section active" id="page-dashboard">
+      <div class="page-header">
+        <div>
+          <h2>Dashboard</h2>
+          <p>Sample microgrid overview — Pakistan Housing Society Microgrid</p>
+        </div>
+        <div style="display:flex; gap:8px;">
+          <button class="btn btn--secondary btn--sm" onclick="refreshData()"><i class="fas fa-sync-alt"></i> Refresh</button>
+          <button class="btn btn--primary btn--sm" id="exportTradesButton" type="button"><i class="fas fa-download"></i> Export CSV</button>
+        </div>
+      </div>
+
+      <!-- KPI Stats -->
+      <div class="stats-grid stagger">
+        <div class="stat-card">
+          <span class="stat-label" id="generationMetricLabel">Total Generation</span>
+          <span class="stat-value" id="statGeneration">847.2</span>
+          <span class="stat-sub" id="generationMetricSub">kWh today <span class="stat-change up">↑ 12.4%</span></span>
+          <div class="sparkline-wrap"><canvas id="sparkGen"></canvas></div>
+        </div>
+        <div class="stat-card">
+          <span class="stat-label" id="tradesMetricLabel">P2P Trades</span>
+          <span class="stat-value" id="statTrades">156</span>
+          <span class="stat-sub" id="tradesMetricSub">settled today <span class="stat-change up">↑ 8.1%</span></span>
+          <div class="sparkline-wrap"><canvas id="sparkTrades"></canvas></div>
+        </div>
+        <div class="stat-card">
+          <span class="stat-label" id="priceMetricLabel">Avg Price</span>
+          <span class="stat-value" id="statPrice">14.3</span>
+          <span class="stat-sub" id="priceMetricSub">PKR/kWh <span class="stat-change down">↓ 2.1%</span></span>
+          <div class="sparkline-wrap"><canvas id="sparkPrice"></canvas></div>
+        </div>
+        <div class="stat-card">
+          <span class="stat-label">Battery SoC</span>
+          <span class="stat-value" id="statBattery">73%</span>
+          <span class="stat-sub" id="batteryMetricSub">250 kWh community BESS <span class="stat-change up">↑ 5%</span></span>
+          <div class="sparkline-wrap"><canvas id="sparkBattery"></canvas></div>
+        </div>
+        <div class="stat-card">
+          <span class="stat-label" id="metersMetricLabel">Active Prosumers</span>
+          <span class="stat-value" id="statMeters">42</span>
+          <span class="stat-sub" id="metersMetricSub">of 120 households online</span>
+        </div>
+        <div class="stat-card">
+          <span class="stat-label">Grid Curtailment</span>
+          <span class="stat-value" id="statCurtail" style="color:var(--green)">OFF</span>
+          <span class="stat-sub">Emergency status: Normal</span>
+        </div>
+      </div>
+
+      <!-- Charts Row -->
+      <div class="content-grid" style="margin-bottom:24px;">
+        <div class="chart-card animate-in animate-in-delay-2">
+          <h4><i class="fas fa-chart-area" style="color:var(--primary-accent)"></i> 24h Load Profile <span class="tag tag--blue">Sample curve</span></h4>
+          <canvas id="chartLoadProfile" height="260"></canvas>
+        </div>
+        <div class="chart-card animate-in animate-in-delay-3">
+          <h4><i class="fas fa-chart-bar" style="color:var(--amber)"></i> Market Price History <span class="tag tag--blue">Sample curve</span></h4>
+          <canvas id="chartPriceHistory" height="260"></canvas>
+        </div>
+      </div>
+
+      <!-- Recent Trades & Network Health -->
+      <div class="content-grid--wide content-grid">
+        <div class="card animate-in animate-in-delay-4">
+          <div class="card-header">
+            <h3>Recent Trades</h3>
+            <span class="tag tag--blue" id="recentTradesBadge">Sample</span>
+          </div>
+          <div class="card-body" style="padding:0;">
+            <div class="table-wrap" style="border:none; border-radius:0;">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Time</th>
+                    <th>Seller</th>
+                    <th>Buyer</th>
+                    <th>kWh</th>
+                    <th>Price</th>
+                    <th>Status</th>
+                  </tr>
+                </thead>
+                <tbody id="recentTradesBody">
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <div class="card animate-in animate-in-delay-5">
+          <div class="card-header">
+            <h3>Network Health</h3>
+            <span class="tag tag--blue" id="networkHealthBadge">Illustrative</span>
+          </div>
+          <div class="card-body">
+            <div style="display:flex;flex-direction:column;gap:14px;">
+              <div>
+                <div style="display:flex;justify-content:space-between;margin-bottom:4px;">
+                  <span style="font-size:12px;color:var(--text-muted)">Transaction Throughput</span>
+                  <span style="font-size:12px;font-weight:600">847 tx/hr</span>
+                </div>
+                <div class="progress-bar"><div class="progress-fill blue" style="width:78%"></div></div>
+              </div>
+              <div>
+                <div style="display:flex;justify-content:space-between;margin-bottom:4px;">
+                  <span style="font-size:12px;color:var(--text-muted)">Smart Meter Uptime</span>
+                  <span style="font-size:12px;font-weight:600">99.7%</span>
+                </div>
+                <div class="progress-bar"><div class="progress-fill green" style="width:99.7%"></div></div>
+              </div>
+              <div>
+                <div style="display:flex;justify-content:space-between;margin-bottom:4px;">
+                  <span style="font-size:12px;color:var(--text-muted)">Merkle Epoch Sync</span>
+                  <span style="font-size:12px;font-weight:600">100%</span>
+                </div>
+                <div class="progress-bar"><div class="progress-fill green" style="width:100%"></div></div>
+              </div>
+              <div>
+                <div style="display:flex;justify-content:space-between;margin-bottom:4px;">
+                  <span style="font-size:12px;color:var(--text-muted)">Battery Cycle Health</span>
+                  <span style="font-size:12px;font-weight:600">92%</span>
+                </div>
+                <div class="progress-bar"><div class="progress-fill green" style="width:92%"></div></div>
+              </div>
+              <div>
+                <div style="display:flex;justify-content:space-between;margin-bottom:4px;">
+                  <span style="font-size:12px;color:var(--text-muted)">Avg Finality Time</span>
+                  <span style="font-size:12px;font-weight:600">2.4 sec</span>
+                </div>
+                <div class="progress-bar"><div class="progress-fill blue" style="width:60%"></div></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ────── PAGE: GRID SCHEMATIC ────── -->
+    <section class="page-section" id="page-schematic">
+      <div class="page-header">
+        <div>
+          <h2>Microgrid Schematic</h2>
+          <p>Illustrative power-flow topology — DER nodes, community battery, grid interconnect</p>
+        </div>
+      </div>
+
+      <div class="schematic-wrap animate-in">
+        <svg class="schematic-svg" viewBox="0 0 900 500" xmlns="http://www.w3.org/2000/svg">
+          <!-- Background Grid -->
+          <defs>
+            <pattern id="gridPattern" width="40" height="40" patternUnits="userSpaceOnUse">
+              <path d="M 40 0 L 0 0 0 40" fill="none" stroke="#e2e8f0" stroke-width="0.5"/>
+            </pattern>
+            <filter id="shadowFilter">
+              <feDropShadow dx="0" dy="1" stdDeviation="2" flood-opacity="0.08"/>
+            </filter>
+          </defs>
+          <rect width="900" height="500" fill="url(#gridPattern)"/>
+
+          <!-- SOLAR PANELS (Left) -->
+          <g transform="translate(60, 60)" filter="url(#shadowFilter)">
+            <rect width="120" height="60" rx="10" fill="#ffffff" stroke="#e2e8f0"/>
+            <rect x="8" y="8" width="104" height="28" rx="6" fill="#eff6ff"/>
+            <text x="60" y="26" text-anchor="middle" font-size="11" font-weight="700" fill="#1e40af">☀ Solar Array</text>
+            <text x="60" y="48" text-anchor="middle" font-size="10" fill="#64748b">42 Panels • 126 kW</text>
+          </g>
+          <g transform="translate(60, 160)" filter="url(#shadowFilter)">
+            <rect width="120" height="60" rx="10" fill="#ffffff" stroke="#e2e8f0"/>
+            <rect x="8" y="8" width="104" height="28" rx="6" fill="#f0fdf4"/>
+            <text x="60" y="26" text-anchor="middle" font-size="11" font-weight="700" fill="#15803d">⚡ Inverters</text>
+            <text x="60" y="48" text-anchor="middle" font-size="10" fill="#64748b">SMA Tripower 25kW</text>
+          </g>
+
+          <!-- SMART METERS (Center-Left) -->
+          <g transform="translate(260, 100)" filter="url(#shadowFilter)">
+            <rect width="130" height="70" rx="10" fill="#ffffff" stroke="#2563eb" stroke-width="1.5"/>
+            <text x="65" y="24" text-anchor="middle" font-size="11" font-weight="700" fill="#1e40af">📡 Smart Meters</text>
+            <text x="65" y="42" text-anchor="middle" font-size="10" fill="#64748b">ECDSA Attested</text>
+            <text x="65" y="56" text-anchor="middle" font-size="10" fill="#15803d">6 Active Devices</text>
+          </g>
+
+          <!-- BLOCKCHAIN NODE (Center) -->
+          <g transform="translate(450, 80)" filter="url(#shadowFilter)" class="glow-active">
+            <rect width="140" height="90" rx="12" fill="#ffffff" stroke="#1e40af" stroke-width="2"/>
+            <rect x="10" y="10" width="120" height="30" rx="6" fill="#1e40af"/>
+            <text x="70" y="30" text-anchor="middle" font-size="11" font-weight="700" fill="white">⛓ Blockchain</text>
+            <text x="70" y="55" text-anchor="middle" font-size="10" fill="#475569">EnergyToken (ERC-20)</text>
+            <text x="70" y="70" text-anchor="middle" font-size="10" fill="#475569">TradingPlatform</text>
+            <text x="70" y="85" text-anchor="middle" font-size="9" fill="#64748b">5 Smart Contracts</text>
+          </g>
+
+          <!-- COMMUNITY BATTERY (Center-Right) -->
+          <g transform="translate(660, 60)" filter="url(#shadowFilter)">
+            <rect width="130" height="80" rx="10" fill="#ffffff" stroke="#e2e8f0"/>
+            <rect x="8" y="8" width="114" height="28" rx="6" fill="#fffbeb"/>
+            <text x="65" y="26" text-anchor="middle" font-size="11" font-weight="700" fill="#b45309">🔋 BESS</text>
+            <text x="65" y="50" text-anchor="middle" font-size="10" fill="#64748b">250 kWh Capacity</text>
+            <text x="65" y="65" text-anchor="middle" font-size="10" fill="#15803d" id="svgBatterySoc">SoC: 73%</text>
+          </g>
+
+          <!-- NATIONAL GRID (Right) -->
+          <g transform="translate(680, 200)" filter="url(#shadowFilter)">
+            <rect width="130" height="60" rx="10" fill="#ffffff" stroke="#b91c1c" stroke-width="1.5"/>
+            <text x="65" y="24" text-anchor="middle" font-size="11" font-weight="700" fill="#b91c1c">🏭 National Grid</text>
+            <text x="65" y="42" text-anchor="middle" font-size="10" fill="#64748b">NEPRA Tariff Mgr</text>
+            <text x="65" y="55" text-anchor="middle" font-size="9" fill="#64748b">Wheeling: 3% + Tax: 1%</text>
+          </g>
+
+          <!-- HOUSEHOLDS (Bottom) -->
+          <g transform="translate(200, 340)" filter="url(#shadowFilter)">
+            <rect width="500" height="70" rx="10" fill="#ffffff" stroke="#e2e8f0"/>
+            <text x="250" y="24" text-anchor="middle" font-size="12" font-weight="700" fill="#0f172a">🏠 Housing Society — 120 Households</text>
+            <text x="250" y="44" text-anchor="middle" font-size="10" fill="#64748b">42 Prosumers (Net Sellers) • 78 Consumers (Net Buyers)</text>
+            <text x="250" y="60" text-anchor="middle" font-size="10" fill="#15803d">P2P Double-Auction Matching Engine Active</text>
+          </g>
+
+          <!-- POWER FLOW LINES -->
+          <!-- Solar → Meters -->
+          <line x1="180" y1="90" x2="260" y2="125" class="power-line active" stroke="#2563eb" stroke-width="2.5"/>
+          <!-- Inverter → Meters -->
+          <line x1="180" y1="190" x2="260" y2="145" class="power-line active" stroke="#15803d" stroke-width="2"/>
+          <!-- Meters → Blockchain -->
+          <line x1="390" y1="135" x2="450" y2="125" class="power-line active" stroke="#1e40af" stroke-width="2"/>
+          <!-- Blockchain → Battery -->
+          <line x1="590" y1="110" x2="660" y2="100" class="power-line active slow" stroke="#b45309" stroke-width="2"/>
+          <!-- Blockchain → Grid -->
+          <line x1="590" y1="140" x2="680" y2="220" class="power-line active slow" stroke="#b91c1c" stroke-width="1.5"/>
+          <!-- Blockchain → Households -->
+          <line x1="520" y1="170" x2="450" y2="340" class="power-line active" stroke="#2563eb" stroke-width="2"/>
+          <!-- Battery → Households -->
+          <line x1="725" y1="140" x2="600" y2="340" class="power-line reverse" stroke="#b45309" stroke-width="1.5"/>
+        </svg>
+
+        <div class="schematic-legend">
+          <div class="legend-item"><div class="legend-line" style="background:#2563eb"></div> Solar → Blockchain</div>
+          <div class="legend-item"><div class="legend-line" style="background:#15803d"></div> Inverter Feed</div>
+          <div class="legend-item"><div class="legend-line" style="background:#b45309"></div> Battery Flow</div>
+          <div class="legend-item"><div class="legend-line" style="background:#b91c1c"></div> Grid Export</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ────── PAGE: ORDER BOOK ────── -->
+    <section class="page-section" id="page-orderbook">
+      <div class="page-header">
+        <div>
+          <h2>P2P Order Book & Auction</h2>
+          <p>Double-auction matching engine — live sell asks and buy bids</p>
+        </div>
+        <button class="btn btn--primary btn--sm" onclick="executeAuction()"><i class="fas fa-gavel"></i> Execute Auction</button>
+      </div>
+
+      <div class="orderbook-grid stagger">
+        <!-- Asks (Sell Side) -->
+        <div class="orderbook-side asks">
+          <div class="side-header"><i class="fas fa-arrow-up"></i> Sell Asks (Prosumers)</div>
+          <div id="asksList">
+            <div class="order-row ask-row">
+              <span>House-A7</span>
+              <span class="price">₨ 12.50</span>
+              <span>45.0 kWh</span>
+              <span class="tag tag--green" style="font-size:10px">Open</span>
+            </div>
+            <div class="order-row ask-row">
+              <span>House-B3</span>
+              <span class="price">₨ 13.00</span>
+              <span>32.0 kWh</span>
+              <span class="tag tag--green" style="font-size:10px">Open</span>
+            </div>
+            <div class="order-row ask-row">
+              <span>House-C1</span>
+              <span class="price">₨ 13.75</span>
+              <span>28.5 kWh</span>
+              <span class="tag tag--green" style="font-size:10px">Open</span>
+            </div>
+            <div class="order-row ask-row">
+              <span>House-D9</span>
+              <span class="price">₨ 14.20</span>
+              <span>18.0 kWh</span>
+              <span class="tag tag--green" style="font-size:10px">Open</span>
+            </div>
+            <div class="order-row ask-row">
+              <span>House-E5</span>
+              <span class="price">₨ 15.00</span>
+              <span>22.0 kWh</span>
+              <span class="tag tag--green" style="font-size:10px">Open</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Bids (Buy Side) -->
+        <div class="orderbook-side bids">
+          <div class="side-header"><i class="fas fa-arrow-down"></i> Buy Bids (Consumers)</div>
+          <div id="bidsList">
+            <div class="order-row bid-row">
+              <span>House-F2</span>
+              <span class="price">₨ 16.00</span>
+              <span>20.0 kWh</span>
+              <span class="tag tag--blue" style="font-size:10px">Open</span>
+            </div>
+            <div class="order-row bid-row">
+              <span>House-G8</span>
+              <span class="price">₨ 15.50</span>
+              <span>35.0 kWh</span>
+              <span class="tag tag--blue" style="font-size:10px">Open</span>
+            </div>
+            <div class="order-row bid-row">
+              <span>House-H4</span>
+              <span class="price">₨ 14.75</span>
+              <span>40.0 kWh</span>
+              <span class="tag tag--blue" style="font-size:10px">Open</span>
+            </div>
+            <div class="order-row bid-row">
+              <span>House-I6</span>
+              <span class="price">₨ 14.00</span>
+              <span>15.0 kWh</span>
+              <span class="tag tag--blue" style="font-size:10px">Open</span>
+            </div>
+            <div class="order-row bid-row">
+              <span>House-J1</span>
+              <span class="price">₨ 13.50</span>
+              <span>25.0 kWh</span>
+              <span class="tag tag--blue" style="font-size:10px">Open</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Market Depth Chart -->
+      <div class="chart-card animate-in animate-in-delay-2" style="margin-top:20px;">
+        <h4><i class="fas fa-layer-group" style="color:var(--primary)"></i> Market Depth</h4>
+        <canvas id="chartMarketDepth" height="220"></canvas>
+      </div>
+
+      <!-- Trade History -->
+      <div class="card animate-in animate-in-delay-3" style="margin-top:20px;">
+        <div class="card-header">
+          <h3>Trade Settlement History</h3>
+          <span class="tag tag--blue" id="tradeHistoryBadge">On-chain history</span>
+        </div>
+        <div class="card-body" style="padding:0;">
+          <div class="table-wrap" style="border:none;border-radius:0;">
+            <table>
+              <thead>
+                <tr><th>Trade ID</th><th>Seller → Buyer</th><th>kWh</th><th>Price</th><th>Wheeling</th><th>Net</th><th>Status</th></tr>
+              </thead>
+              <tbody id="tradeHistoryBody"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ────── PAGE: PROSUMER TERMINAL ────── -->
+    <section class="page-section" id="page-prosumer">
+      <div class="page-header">
+        <div>
+          <h2>Prosumer Terminal</h2>
+          <p>Orders use the local contract; household generation and revenue figures are sample data</p>
+        </div>
+      </div>
+
+      <div class="stats-grid stagger">
+        <div class="stat-card">
+          <span class="stat-label">My Generation Today</span>
+          <span class="stat-value">124.8</span>
+          <span class="stat-sub">kWh from 10 kW array</span>
+        </div>
+        <div class="stat-card">
+          <span class="stat-label">Self Consumption</span>
+          <span class="stat-value">67.2</span>
+          <span class="stat-sub">kWh (53.8% of generation)</span>
+        </div>
+        <div class="stat-card">
+          <span class="stat-label">Surplus Available</span>
+          <span class="stat-value" style="color:var(--green)">57.6</span>
+          <span class="stat-sub">kWh ready to sell</span>
+        </div>
+        <div class="stat-card">
+          <span class="stat-label">Revenue Today</span>
+          <span class="stat-value">₨ 743</span>
+          <span class="stat-sub">from 4 settled trades</span>
+        </div>
+      </div>
+
+      <div class="content-grid">
+        <!-- Post Sell Order -->
+        <div class="card animate-in animate-in-delay-1">
+          <div class="card-header"><h3>Post Sell Ask</h3></div>
+          <div class="card-body">
+            <div class="form-group">
+              <label class="form-label">Energy Amount (kWh)</label>
+              <input type="number" class="form-input" id="sellKwh" placeholder="e.g. 25.0" value="25">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Ask Price (SCT/kWh)</label>
+              <input type="number" class="form-input" id="sellPrice" placeholder="e.g. 28.00" value="28" step="0.25">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Expiry</label>
+              <select class="form-input" id="sellExpiry">
+                <option value="1">1 Hour</option>
+                <option value="4" selected>4 Hours</option>
+                <option value="12">12 Hours</option>
+                <option value="24">24 Hours</option>
+              </select>
+            </div>
+            <div style="padding:12px;background:var(--surface-muted);border-radius:var(--radius);margin-bottom:14px;font-size:12px;color:var(--text-muted);">
+            <div style="display:flex;justify-content:space-between;margin-bottom:4px;"><span>FiT Floor Price</span><span style="font-weight:600;color:var(--text)" id="fitFloorDisplay">20 SCT/kWh</span></div>
+            <div style="display:flex;justify-content:space-between;margin-bottom:4px;"><span>Retail Ceiling</span><span style="font-weight:600;color:var(--text)" id="retailCeilingDisplay">50 SCT/kWh</span></div>
+            <div style="display:flex;justify-content:space-between;"><span>Wheeling Fee</span><span style="font-weight:600;color:var(--amber)" id="wheelingFeeDisplay">3%</span></div>
+            </div>
+            <button class="btn btn--success" style="width:100%;" onclick="postSellOrder()"><i class="fas fa-arrow-up"></i> Post Sell Ask</button>
+          </div>
+        </div>
+
+        <!-- Generation Chart -->
+        <div class="chart-card animate-in animate-in-delay-2">
+          <h4><i class="fas fa-sun" style="color:var(--amber)"></i> Today's Generation Curve</h4>
+          <canvas id="chartGeneration" height="280"></canvas>
+        </div>
+      </div>
+    </section>
+
+    <!-- ────── PAGE: CONSUMER PORTAL ────── -->
+    <section class="page-section" id="page-consumer">
+      <div class="page-header">
+        <div>
+          <h2>Consumer Portal</h2>
+          <p>Buy through the local contract; household consumption figures are sample data</p>
+        </div>
+      </div>
+
+      <div class="stats-grid stagger">
+        <div class="stat-card">
+          <span class="stat-label">My Consumption Today</span>
+          <span class="stat-value">34.5</span>
+          <span class="stat-sub">kWh total usage</span>
+        </div>
+        <div class="stat-card">
+          <span class="stat-label">P2P Purchases</span>
+          <span class="stat-value" style="color:var(--green)">21.2</span>
+          <span class="stat-sub">kWh from neighbors (61.4%)</span>
+        </div>
+        <div class="stat-card">
+          <span class="stat-label">Grid Purchases</span>
+          <span class="stat-value" style="color:var(--amber)">13.3</span>
+          <span class="stat-sub">kWh from DISCO (38.6%)</span>
+        </div>
+        <div class="stat-card">
+          <span class="stat-label">Cost Savings</span>
+          <span class="stat-value" style="color:var(--green)">₨ 187</span>
+          <span class="stat-sub">vs. grid-only pricing today</span>
+        </div>
+      </div>
+
+      <div class="content-grid">
+        <!-- Post Buy Order -->
+        <div class="card animate-in animate-in-delay-1">
+          <div class="card-header"><h3>Submit Buy Bid</h3></div>
+          <div class="card-body">
+            <div class="form-group">
+              <label class="form-label">Energy Needed (kWh)</label>
+              <input type="number" class="form-input" id="buyKwh" placeholder="e.g. 15.0" value="15">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Max Bid Price (SCT/kWh)</label>
+              <input type="number" class="form-input" id="buyPrice" placeholder="e.g. 35.00" value="35" step="0.25">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Expiry</label>
+              <select class="form-input" id="buyExpiry">
+                <option value="1">1 Hour</option>
+                <option value="4" selected>4 Hours</option>
+                <option value="12">12 Hours</option>
+              </select>
+            </div>
+            <div style="padding:12px;background:var(--primary-light);border-radius:var(--radius);margin-bottom:14px;font-size:12px;color:var(--primary);">
+              <strong>💡 Tip:</strong> Contract prices are denominated in Solar Credit Tokens (SCT).
+            </div>
+            <button class="btn btn--primary" style="width:100%;" onclick="postBuyOrder()"><i class="fas fa-arrow-down"></i> Submit Buy Bid</button>
+          </div>
+        </div>
+
+        <!-- Consumption Chart -->
+        <div class="chart-card animate-in animate-in-delay-2">
+          <h4><i class="fas fa-plug" style="color:var(--primary)"></i> Consumption Breakdown</h4>
+          <canvas id="chartConsumption" height="280"></canvas>
+        </div>
+      </div>
+    </section>
+
+    <!-- ────── PAGE: COMMUNITY BATTERY ────── -->
+    <section class="page-section" id="page-battery">
+      <div class="page-header">
+        <div>
+          <h2>Community Battery (BESS)</h2>
+          <p>250 kWh LFP battery — VPP arbitrage, peak shaving, frequency regulation</p>
+        </div>
+        <div style="display:flex;gap:8px;">
+          <button class="btn btn--success btn--sm" onclick="chargeBattery()"><i class="fas fa-bolt"></i> Charge</button>
+          <button class="btn btn--secondary btn--sm" onclick="dischargeBattery()"><i class="fas fa-arrow-right"></i> Discharge</button>
+        </div>
+      </div>
+
+      <div class="content-grid">
+        <div class="card animate-in">
+          <div class="card-header"><h3>Battery Status</h3></div>
+          <div class="card-body" style="display:flex;gap:32px;align-items:center;">
+            <div class="battery-visual">
+              <div class="battery-shell">
+                <div class="battery-tip"></div>
+                <div class="battery-level" id="batteryLevel" style="height:73%"></div>
+              </div>
+              <span class="battery-percent" id="batteryPercent">73%</span>
+              <span class="battery-label">State of Charge</span>
+            </div>
+            <div style="flex:1;display:flex;flex-direction:column;gap:12px;">
+              <div class="meter-reading"><span class="label">Capacity</span><span class="value" id="batteryCapacityReading">250 kWh (LFP)</span></div>
+              <div class="meter-reading"><span class="label">Current Charge</span><span class="value" id="batteryChargeReading">182.5 kWh</span></div>
+              <div class="meter-reading"><span class="label">Charge Rate</span><span class="value">50 kW max</span></div>
+              <div class="meter-reading"><span class="label">Cycles Used</span><span class="value">1,247 / 6,000</span></div>
+              <div class="meter-reading"><span class="label">Temperature</span><span class="value">28.3°C</span></div>
+              <div class="meter-reading"><span class="label">IEEE 1547 Mode</span><span class="value"><span class="tag tag--green">Normal</span></span></div>
+              <div class="meter-reading"><span class="label">VPP Status</span><span class="value"><span class="tag tag--blue">Standby</span></span></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="chart-card animate-in animate-in-delay-1">
+          <h4><i class="fas fa-battery-half" style="color:var(--amber)"></i> SoC Over 24 Hours <span class="tag tag--blue">Sample curve</span></h4>
+          <canvas id="chartBatterySoc" height="280"></canvas>
+        </div>
+      </div>
+    </section>
+
+    <!-- ────── PAGE: IoT METERS ────── -->
+    <section class="page-section" id="page-iot">
+      <div class="page-header">
+        <div>
+          <h2>IoT Smart Meters</h2>
+          <p>ECDSA-attested hardware meters — Merkle epoch telemetry anchoring</p>
+        </div>
+        <button class="btn btn--primary btn--sm" onclick="anchorEpoch()"><i class="fas fa-anchor"></i> Anchor Epoch</button>
+      </div>
+
+      <div class="meter-grid stagger" id="meterGrid">
+        <!-- Meters populated by JS -->
+      </div>
+
+      <div class="chart-card animate-in animate-in-delay-3" style="margin-top:24px;">
+        <h4><i class="fas fa-microchip" style="color:var(--primary)"></i> Aggregate Meter Telemetry (1h Rolling) <span class="tag tag--blue">Sample curve</span></h4>
+        <canvas id="chartTelemetry" height="220"></canvas>
+      </div>
+    </section>
+
+    <!-- ────── PAGE: DISCO SCADA ────── -->
+    <section class="page-section" id="page-scada">
+      <div class="page-header">
+        <div>
+          <h2>DISCO SCADA & Regulators</h2>
+          <p>Grid operator panel — NEPRA tariffs, emergency curtailment, wheeling fees</p>
+        </div>
+      </div>
+
+      <div class="stats-grid stagger">
+        <div class="stat-card">
+          <span class="stat-label">Wheeling Fee</span>
+          <span class="stat-value" id="scadaWheeling">3.0%</span>
+          <span class="stat-sub">Standard transmission charge</span>
+        </div>
+        <div class="stat-card">
+          <span class="stat-label">Regulatory Tax</span>
+          <span class="stat-value" id="scadaTax">1.0%</span>
+          <span class="stat-sub">NEPRA compliance levy</span>
+        </div>
+        <div class="stat-card">
+          <span class="stat-label">FiT Floor</span>
+          <span class="stat-value" id="scadaFitFloor">20.00 SCT</span>
+          <span class="stat-sub">Minimum guaranteed price</span>
+        </div>
+        <div class="stat-card">
+          <span class="stat-label">Retail Ceiling</span>
+          <span class="stat-value" id="scadaRetailCeiling">50.00 SCT</span>
+          <span class="stat-sub">Maximum allowed price</span>
+        </div>
+      </div>
+
+      <div class="content-grid">
+        <div class="card animate-in animate-in-delay-1">
+          <div class="card-header">
+            <h3>Emergency Controls</h3>
+            <span class="tag tag--green" id="curtailBadge">Normal</span>
+          </div>
+          <div class="card-body">
+            <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;">
+              Toggle emergency curtailment to halt all P2P solar exports during grid instability events.
+            </p>
+            <div style="display:flex;gap:12px;">
+              <button class="btn btn--danger" onclick="toggleCurtailment(true)"><i class="fas fa-exclamation-triangle"></i> Activate Curtailment</button>
+              <button class="btn btn--success" onclick="toggleCurtailment(false)"><i class="fas fa-check-circle"></i> Deactivate</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="card animate-in animate-in-delay-2">
+          <div class="card-header"><h3>Peak Period Schedule</h3></div>
+          <div class="card-body">
+            <div class="table-wrap">
+              <table>
+                <thead><tr><th>Period</th><th>Hours</th><th>Wheeling Multiplier</th><th>Status</th></tr></thead>
+                <tbody>
+                  <tr><td>Morning Peak</td><td>07:00 — 10:00</td><td>1.5×</td><td><span class="tag tag--amber">Peak</span></td></tr>
+                  <tr><td>Afternoon Off-Peak</td><td>10:00 — 17:00</td><td>1.0×</td><td><span class="tag tag--green">Normal</span></td></tr>
+                  <tr><td>Evening Peak</td><td>17:00 — 22:00</td><td>1.5×</td><td><span class="tag tag--amber">Peak</span></td></tr>
+                  <tr><td>Night Off-Peak</td><td>22:00 — 07:00</td><td>1.0×</td><td><span class="tag tag--green">Normal</span></td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ────── PAGE: SMART CONTRACTS ────── -->
+    <section class="page-section" id="page-contracts">
+      <div class="page-header">
+        <div>
+          <h2>Smart Contracts</h2>
+          <p>Local project contract overview — Solidity 0.8.24, Cancun EVM, OpenZeppelin v5</p>
+        </div>
+      </div>
+
+      <div class="stagger">
+        <div class="card" style="margin-bottom:16px;">
+          <div class="card-body" style="display:grid;grid-template-columns:auto 1fr auto auto;gap:16px;align-items:center;">
+            <div class="avatar">ET</div>
+            <div>
+              <div style="font-weight:650;font-size:14px;">EnergyToken.sol</div>
+              <div style="font-size:12px;color:var(--text-muted);">ERC-20 closed-loop utility credit token for energy settlements</div>
+            </div>
+            <span class="tag tag--blue" data-contract-status="EnergyToken">Waiting</span>
+            <span style="font-size:12px;color:var(--text-muted);font-variant-numeric:tabular-nums;" data-contract-address="EnergyToken">Not connected</span>
+          </div>
+        </div>
+
+        <div class="card" style="margin-bottom:16px;">
+          <div class="card-body" style="display:grid;grid-template-columns:auto 1fr auto auto;gap:16px;align-items:center;">
+            <div class="avatar" style="background:var(--green-light);color:var(--green);">SM</div>
+            <div>
+              <div style="font-weight:650;font-size:14px;">SmartMeterRegistry.sol</div>
+              <div style="font-size:12px;color:var(--text-muted);">ECDSA device identities, Merkle epoch anchoring, GIGO defense</div>
+            </div>
+            <span class="tag tag--blue" data-contract-status="SmartMeterRegistry">Waiting</span>
+            <span style="font-size:12px;color:var(--text-muted);font-variant-numeric:tabular-nums;" data-contract-address="SmartMeterRegistry">Not connected</span>
+          </div>
+        </div>
+
+        <div class="card" style="margin-bottom:16px;">
+          <div class="card-body" style="display:grid;grid-template-columns:auto 1fr auto auto;gap:16px;align-items:center;">
+            <div class="avatar" style="background:var(--amber-light);color:var(--amber);">GT</div>
+            <div>
+              <div style="font-weight:650;font-size:14px;">GridTariffManager.sol</div>
+              <div style="font-size:12px;color:var(--text-muted);">NEPRA/DISCO wheeling fees, FiT floor/ceiling, ToU windows, curtailment</div>
+            </div>
+            <span class="tag tag--blue" data-contract-status="GridTariffManager">Waiting</span>
+            <span style="font-size:12px;color:var(--text-muted);font-variant-numeric:tabular-nums;" data-contract-address="GridTariffManager">Not connected</span>
+          </div>
+        </div>
+
+        <div class="card" style="margin-bottom:16px;">
+          <div class="card-body" style="display:grid;grid-template-columns:auto 1fr auto auto;gap:16px;align-items:center;">
+            <div class="avatar" style="background:var(--primary-light);color:var(--primary);">TP</div>
+            <div>
+              <div style="font-weight:650;font-size:14px;">EnergyTradingPlatform.sol</div>
+              <div style="font-size:12px;color:var(--text-muted);">Double-auction matching engine, escrow, atomic multi-party settlement</div>
+            </div>
+            <span class="tag tag--blue" data-contract-status="EnergyTradingPlatform">Waiting</span>
+            <span style="font-size:12px;color:var(--text-muted);font-variant-numeric:tabular-nums;" data-contract-address="EnergyTradingPlatform">Not connected</span>
+          </div>
+        </div>
+
+        <div class="card" style="margin-bottom:16px;">
+          <div class="card-body" style="display:grid;grid-template-columns:auto 1fr auto auto;gap:16px;align-items:center;">
+            <div class="avatar" style="background:var(--amber-light);color:var(--amber);">CB</div>
+            <div>
+              <div style="font-weight:650;font-size:14px;">CommunityBatteryManager.sol</div>
+              <div style="font-size:12px;color:var(--text-muted);">Community BESS, VPP arbitrage, IEEE 1547 Volt-Watt absorption</div>
+            </div>
+            <span class="tag tag--blue" data-contract-status="CommunityBatteryManager">Waiting</span>
+            <span style="font-size:12px;color:var(--text-muted);font-variant-numeric:tabular-nums;" data-contract-address="CommunityBatteryManager">Not connected</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Gas Benchmarks -->
+      <div class="card animate-in animate-in-delay-3" style="margin-top:24px;">
+        <div class="card-header"><h3>Gas Benchmarks</h3><span class="tag tag--blue">Example data</span></div>
+        <div class="card-body" style="padding:0;">
+          <div class="table-wrap" style="border:none;border-radius:0;">
+            <table>
+              <thead><tr><th>Operation</th><th>Gas Used</th><th>USD @ 24 Gwei</th><th>L2 Equivalent</th></tr></thead>
+              <tbody>
+                <tr><td>registerMeter</td><td style="font-variant-numeric:tabular-nums">188,620</td><td>~$0.82</td><td>~$0.004</td></tr>
+                <tr><td>recordDirectMeterReading</td><td style="font-variant-numeric:tabular-nums">87,898</td><td>~$0.38</td><td>~$0.002</td></tr>
+                <tr><td>anchorEpochTelemetry</td><td style="font-variant-numeric:tabular-nums">182,133</td><td>~$0.79</td><td>~$0.004</td></tr>
+                <tr><td>createSellOrder</td><td style="font-variant-numeric:tabular-nums">249,293</td><td>~$1.08</td><td>~$0.005</td></tr>
+                <tr><td>createBuyOrder</td><td style="font-variant-numeric:tabular-nums">280,444</td><td>~$1.22</td><td>~$0.006</td></tr>
+                <tr><td>matchOrders</td><td style="font-variant-numeric:tabular-nums">573,718</td><td>~$2.49</td><td>~$0.012</td></tr>
+                <tr><td>cancelOrder</td><td style="font-variant-numeric:tabular-nums">63,238</td><td>~$0.27</td><td>~$0.001</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ────── PAGE: EVENT LOG ────── -->
+    <section class="page-section" id="page-events">
+      <div class="page-header">
+        <div>
+          <h2>Blockchain Event Stream</h2>
+          <p>Local demo event log — simulated trades, meter readings, and settlements</p>
+        </div>
+        <button class="btn btn--secondary btn--sm" onclick="clearTerminal()"><i class="fas fa-trash-alt"></i> Clear</button>
+      </div>
+
+      <div class="terminal animate-in">
+        <div class="terminal-header">
+          <div class="terminal-dot red"></div>
+          <div class="terminal-dot yellow"></div>
+          <div class="terminal-dot green"></div>
+          <span class="terminal-title" id="eventStreamTitle">heliosgrid-demo-event-stream — simulated locally</span>
+        </div>
+        <div class="terminal-body" id="terminalBody">
+          <div class="terminal-line"><span class="timestamp">[DEMO]</span> <span class="event-type">SYSTEM</span> HeliosGrid dashboard initialized</div>
+          <div class="terminal-line"><span class="timestamp">[DEMO]</span> <span class="event-type">SYSTEM</span> Checking for a local Hardhat deployment…</div>
+        </div>
+      </div>
+    </section>
+
+  </main>
+</div>
+
+<!-- ═══════════════ JAVASCRIPT ═══════════════ -->
+<script src="js/data.js"></script>
+<script src="js/charts.js"></script>
+<script src="js/simulation.js"></script>
+<script src="js/blockchain.js"></script>
+<script src="js/app.js"></script>
+
+</body>
+</html>

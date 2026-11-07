@@ -1,0 +1,180 @@
+/* ==========================================================================
+   ANIMATIONS — Smooth micro-interactions, power-flow, reveal effects
+   ========================================================================== */
+
+/* ── ENTRANCE ANIMATIONS ── */
+@keyframes fadeInUp {
+  from { opacity: 0; transform: translateY(12px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+@keyframes scaleIn {
+  from { opacity: 0; transform: scale(0.95); }
+  to   { opacity: 1; transform: scale(1); }
+}
+@keyframes slideInRight {
+  from { opacity: 0; transform: translateX(16px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+
+.animate-in {
+  animation: fadeInUp 0.45s var(--ease-out) both;
+}
+.animate-in-delay-1 { animation-delay: 60ms; }
+.animate-in-delay-2 { animation-delay: 120ms; }
+.animate-in-delay-3 { animation-delay: 180ms; }
+.animate-in-delay-4 { animation-delay: 240ms; }
+.animate-in-delay-5 { animation-delay: 300ms; }
+
+/* ── STAGGER CHILDREN ── */
+.stagger > * {
+  animation: fadeInUp 0.4s var(--ease-out) both;
+}
+.stagger > *:nth-child(1) { animation-delay:  0ms; }
+.stagger > *:nth-child(2) { animation-delay: 60ms; }
+.stagger > *:nth-child(3) { animation-delay: 120ms; }
+.stagger > *:nth-child(4) { animation-delay: 180ms; }
+.stagger > *:nth-child(5) { animation-delay: 240ms; }
+.stagger > *:nth-child(6) { animation-delay: 300ms; }
+.stagger > *:nth-child(7) { animation-delay: 360ms; }
+.stagger > *:nth-child(8) { animation-delay: 420ms; }
+
+/* ── POWER FLOW ANIMATION (SVG LINES) ── */
+@keyframes electronFlow {
+  from { stroke-dashoffset: 24; }
+  to   { stroke-dashoffset: 0; }
+}
+@keyframes electronFlowReverse {
+  from { stroke-dashoffset: 0; }
+  to   { stroke-dashoffset: 24; }
+}
+
+.power-line {
+  stroke-dasharray: 8 4;
+  stroke-linecap: round;
+}
+.power-line.active {
+  animation: electronFlow 0.8s linear infinite;
+}
+.power-line.reverse {
+  animation: electronFlowReverse 0.8s linear infinite;
+}
+.power-line.slow {
+  animation-duration: 1.4s;
+}
+
+/* ── GLOW PULSE (for active nodes) ── */
+@keyframes glowPulse {
+  0%   { filter: drop-shadow(0 0 2px rgba(37, 99, 235, 0.2)); }
+  50%  { filter: drop-shadow(0 0 8px rgba(37, 99, 235, 0.4)); }
+  100% { filter: drop-shadow(0 0 2px rgba(37, 99, 235, 0.2)); }
+}
+.glow-active {
+  animation: glowPulse 2.4s ease-in-out infinite;
+}
+
+/* ── NUMBER COUNTER ── */
+@keyframes countUp {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.counter-in {
+  animation: countUp 0.5s var(--ease-spring) both;
+}
+
+/* ── SKELETON LOADING ── */
+@keyframes shimmer {
+  0%   { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+.skeleton {
+  background: linear-gradient(90deg,
+    var(--surface-muted) 25%,
+    var(--border) 50%,
+    var(--surface-muted) 75%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.5s ease infinite;
+  border-radius: var(--radius-sm);
+}
+
+/* ── SPINNER ── */
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+.spinner {
+  width: 16px;
+  height: 16px;
+  border: 2px solid var(--border);
+  border-top-color: var(--primary-accent);
+  border-radius: 50%;
+  animation: spin 0.6s linear infinite;
+}
+
+/* ── TOAST NOTIFICATION ── */
+@keyframes toastIn {
+  from { opacity: 0; transform: translateY(20px) scale(0.95); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+@keyframes toastOut {
+  from { opacity: 1; transform: translateY(0) scale(1); }
+  to   { opacity: 0; transform: translateY(-12px) scale(0.95); }
+}
+
+.toast {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  background: var(--text);
+  color: white;
+  padding: 12px 20px;
+  border-radius: var(--radius);
+  font-size: 13px;
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  box-shadow: var(--shadow-lg);
+  z-index: 9999;
+  animation: toastIn 0.35s var(--ease-spring) both;
+}
+.toast.hiding {
+  animation: toastOut 0.25s var(--ease-in) both;
+}
+
+/* ── RIPPLE ── */
+@keyframes ripple {
+  to {
+    transform: scale(2.5);
+    opacity: 0;
+  }
+}
+.ripple-effect {
+  position: absolute;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.3);
+  transform: scale(0);
+  animation: ripple 0.5s ease-out;
+  pointer-events: none;
+}
+
+/* ── PAGE TRANSITIONS ── */
+.page-section {
+  display: none;
+}
+.page-section.active {
+  display: block;
+  animation: fadeInUp 0.35s var(--ease-out) both;
+}
+
+/* ── CHART CONTAINER HOVER ── */
+.chart-container {
+  position: relative;
+  transition: transform var(--duration) var(--ease-out);
+}
+.chart-container:hover {
+  transform: translateY(-1px);
+}
