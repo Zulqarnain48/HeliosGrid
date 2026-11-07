@@ -1,0 +1,177 @@
+# HeliosGrid Deployment Instructions
+
+The HeliosGrid frontend is already hosted on Netlify:
+
+**Live Website:** https://soft-dusk-2e453f.netlify.app/
+
+An inspection of the website and its JavaScript indicates that the frontend is built using static HTML and JavaScript. However, its wallet and energy trading functionality depends on a local Hardhat blockchain (Chain ID: `31337`) and several backend endpoints:
+
+- `/api/deployment`
+- `/api/abi/:name`
+- `/api/rpc`
+
+Deploying the frontend alone does not enable live blockchain transactions or trading functionality. The blockchain environment and backend services must also be configured.
+
+## 1. Frontend Deployment
+
+The following steps explain how to deploy or update the HeliosGrid frontend using Netlify.
+
+### Step 1: Obtain the Source Code
+
+Obtain the original HeliosGrid project source code from its GitHub repository.
+
+The source files are required to prepare and deploy the complete frontend. Without them, the exact build commands and deployment directory cannot be verified.
+
+### Step 2: Prepare the Frontend Files
+
+If the project uses plain HTML and JavaScript, prepare the frontend directory containing all required files and assets, including:
+
+- `index.html`
+- `js/`
+- `vendor/`
+- Other required stylesheets, images, and resources.
+
+If the project uses a frontend framework, execute its documented build command to generate the production-ready output directory.
+
+### Step 3: Deploy Through Netlify
+
+1. Log in to your Netlify account.
+2. Select **Add New Project → Deploy Manually**.
+3. Upload the frontend directory or generated build output.
+4. Ensure that the selected directory contains the deployed `index.html` file.
+5. Wait for Netlify to complete the deployment.
+6. Open the generated website URL and verify that the frontend loads correctly.
+
+For a plain HTML and JavaScript project, a separate build command is not required.
+
+### Step 4: Configure Automatic Deployment
+
+For continuous updates:
+
+1. Open the Netlify dashboard.
+2. Select **Import an Existing Project**.
+3. Connect the GitHub repository.
+4. Select the HeliosGrid repository.
+5. Configure the build command if required by the project.
+6. Set the publish directory to the folder containing the production `index.html`.
+7. Save the configuration.
+
+Netlify can then automatically deploy updates whenever changes are pushed to the connected repository.
+
+### Step 5: Verify the Frontend
+
+After deployment, verify the following:
+
+- Dashboard loads correctly.
+- Navigation links work.
+- Charts and visual components are displayed.
+- Images, stylesheets, and JavaScript files load correctly.
+- No major errors appear in the browser console.
+
+Note that sample dashboard values should not be interpreted as real-time blockchain data unless they are connected to an active blockchain network.
+
+## 2. Blockchain Deployment and Live Trading Configuration
+
+To enable wallet connectivity and actual energy trading, the blockchain environment and backend services must be configured separately.
+
+### Step 1: Run the Local Hardhat Blockchain
+
+For local development and testing, start the Hardhat blockchain using the project's documented commands.
+
+The current frontend configuration uses:
+
+| Configuration | Value |
+|---|---|
+| Network Name | Local Hardhat |
+| Chain ID | `31337` |
+| RPC URL | `http://127.0.0.1:8545` |
+
+Deploy the smart contracts to the local blockchain using the deployment scripts provided in the source repository.
+
+The local RPC address refers to the computer running the Hardhat node. It is not publicly accessible to other website visitors.
+
+### Step 2: Select a Public Blockchain Network
+
+For public access, select an appropriate blockchain testnet or production network.
+
+The smart contracts must be deployed to the selected network, and their deployed addresses must be recorded.
+
+The deployment process should include:
+
+- Selecting the target blockchain network.
+- Configuring the network in Hardhat.
+- Deploying all required smart contracts.
+- Recording the deployed contract addresses.
+- Verifying successful contract deployment.
+
+The exact deployment commands depend on the project's Hardhat configuration and deployment scripts.
+
+### Step 3: Update Frontend Network Configuration
+
+The frontend currently checks for Chain ID `31337`.
+
+For a public blockchain deployment, update the following configuration:
+
+- Blockchain Chain ID.
+- Wallet network settings.
+- RPC endpoint.
+- Smart contract addresses.
+- Contract ABI references.
+
+Changing only the RPC URL is insufficient because the existing frontend also checks the network Chain ID.
+
+### Step 4: Configure Backend API Endpoints
+
+The frontend requires the following endpoints to retrieve blockchain configuration and interact with the deployed contracts.
+
+| API Endpoint | Responsibility |
+|---|---|
+| `/api/deployment` | Provides deployed contract addresses and blockchain network information. |
+| `/api/abi/:name` | Provides the ABI for the requested smart contract. |
+| `/api/rpc` | Provides the configured blockchain RPC connection. |
+
+These endpoints must be implemented through a compatible backend or Netlify Functions.
+
+The backend should return the correct deployment information for the selected blockchain network.
+
+A publicly hosted frontend cannot automatically access a developer's local Hardhat blockchain.
+
+### Step 5: Configure Security and Wallet Access
+
+For secure deployment:
+
+- Never expose private keys in frontend JavaScript files.
+- Do not commit sensitive credentials to the GitHub repository.
+- Store server-side credentials in Netlify environment variables or an appropriate secure backend.
+- Allow users to sign blockchain transactions through their own connected wallets.
+- Apply appropriate access control and transaction validation.
+- Use a testnet before considering production deployment.
+
+### Step 6: Perform End-to-End Testing
+
+After configuring the frontend, backend, and blockchain network, verify the complete transaction workflow.
+
+The testing process should include:
+
+1. Connecting MetaMask to the selected network.
+2. Verifying the connected wallet address.
+3. Checking the deployed smart contract addresses.
+4. Testing energy buy and sell orders.
+5. Verifying token approvals where required.
+6. Testing order matching and transaction execution.
+7. Verifying grid charges and settlement calculations.
+8. Confirming transaction records on the selected blockchain explorer.
+
+## 3. Important Deployment Considerations
+
+The current HeliosGrid website is hosted on Netlify, but frontend hosting and blockchain deployment are separate processes.
+
+A complete deployment requires three components:
+
+| Component | Deployment Responsibility |
+|---|---|
+| Frontend | Hosting the user interface through Netlify. |
+| Smart Contracts | Deploying Solidity contracts to a blockchain network. |
+| Backend Services | Providing deployment configuration, contract ABIs, and RPC connectivity. |
+
+**Note:** The existing website has not been modified or redeployed as part of these instructions. The deployment guidance is based on the inspected live frontend configuration. The original source files are required to verify the exact build process, backend implementation, and smart contract deployment commands.
